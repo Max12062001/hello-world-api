@@ -1,0 +1,54 @@
+name: Build and Test Hello World API
+
+# Trigger on every push to main branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ Set up Python
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          echo "Installing Python dependencies..."
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          echo "Dependencies installed ✅"
+
+      # 4️⃣ Build Docker image
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          docker build -t hello-world-api:latest .
+          echo "Docker image built ✅"
+
+      # 5️⃣ Test the container
+      - name: Run container and test API
+        run: |
+          echo "Starting container for testing..."
+          docker run -d -p 5000:5000 --name test-api hello-world-api:latest
+          sleep 5
+          echo "Testing API response..."
+          RESPONSE=$(curl -s http://localhost:5000)
+          echo "Response from API: $RESPONSE"
+          if [ "$RESPONSE" != "Hello World" ]; then
+            echo "API test failed ❌"
+            exit 1
+          fi
+          echo "API test passed ✅"
+          docker stop test-api
+          docker rm test-api
